@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RuangKerja - Corporate Room Booking & Meeting Management</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/css/custom.css">
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 antialiased flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 glass-header border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+            <i data-lucide="building-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-bold tracking-tight text-slate-900">RuangKerja</span>
+              <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-semibold">Corporate Hub</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium hidden sm:block">Sistem Peminjaman & Manajemen Ruang Rapat</p>
+          </div>
+        </div>
+
+        <!-- Quick Stats summary in Header -->
+        <div class="hidden md:flex items-center space-x-6 text-sm">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-slate-500">Ruangan:</span>
+            <span id="statTotalRooms" class="font-bold text-slate-800">7</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            <span class="text-slate-500">Booking Hari Ini:</span>
+            <span id="statBookingsToday" class="font-bold text-slate-800">0</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 pulse-busy"></span>
+            <span class="text-slate-500">Sedang Dipakai:</span>
+            <span id="statOngoing" class="font-bold text-rose-600">0</span>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="flex items-center space-x-3">
+          <button onclick="openBookingModal()" class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-150 active:scale-95">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Pinjam Ruangan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-8" aria-label="Tabs">
+        <button onclick="switchTab('calendar')" id="tabBtn-calendar" class="tab-btn active inline-flex items-center py-4 px-1 border-b-2 border-indigo-600 font-semibold text-sm text-indigo-600">
+          <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+          Jadwal & Kalender
+        </button>
+        <button onclick="switchTab('rooms')" id="tabBtn-rooms" class="tab-btn inline-flex items-center py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300">
+          <i data-lucide="layout-grid" class="w-4 h-4 mr-2"></i>
+          Daftar Ruangan
+        </button>
+        <button onclick="switchTab('bookings')" id="tabBtn-bookings" class="tab-btn inline-flex items-center py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300">
+          <i data-lucide="clipboard-list" class="w-4 h-4 mr-2"></i>
+          Riwayat & Agenda Peminjaman
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== TAB 1: KALENDER & JADWAL ==================== -->
+    <div id="tabContent-calendar" class="space-y-6">
+      
+      <!-- Date Controls and View Filters -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <button onclick="changeMonth(-1)" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <h2 id="calendarMonthYear" class="text-xl font-bold text-slate-800 min-w-[200px] text-center">
+            September 2026
+          </h2>
+          <button onclick="changeMonth(1)" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+          <button onclick="goToToday()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            Hari Ini
+          </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Room filter for calendar -->
+          <div class="flex items-center space-x-2">
+            <label class="text-xs font-medium text-slate-500">Filter Ruang:</label>
+            <select id="calendarRoomFilter" onchange="renderCalendar()" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="ALL">Semua Ruangan</option>
+            </select>
+          </div>
+
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl">
+            <button onclick="setCalendarMode('month')" id="modeBtnMonth" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm transition">
+              Bulan
+            </button>
+            <button onclick="setCalendarMode('timeline')" id="modeBtnTimeline" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition">
+              Timeline Harian
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW A: Monthly Calendar Grid -->
+      <div id="calendarMonthView" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <!-- Day headers -->
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+          <div class="text-rose-500">Minggu</div>
+          <div>Senin</div>
+          <div>Selasa</div>
+          <div>Rabu</div>
+          <div>Kamis</div>
+          <div>Jumat</div>
+          <div>Sabtu</div>
+        </div>
+        <!-- Days grid container -->
+        <div id="calendarGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100 text-sm">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- VIEW B: Daily Timeline View (Room by Room) -->
+      <div id="calendarTimelineView" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hidden">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="clock" class="w-5 h-5 text-indigo-600"></i>
+            <h3 class="font-bold text-slate-800">Timeline Jadwal Ruangan: <span id="timelineSelectedDateText" class="text-indigo-600"></span></h3>
+          </div>
+          <input type="date" id="timelineDatePicker" onchange="renderTimelineForDate(this.value)" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium">
+        </div>
+
+        <div class="overflow-x-auto">
+          <div class="min-w-[900px]">
+            <!-- Hours header (08:00 to 18:00) -->
+            <div class="grid grid-cols-11 border-b border-slate-200 text-xs font-semibold text-slate-500 py-2">
+              <div class="col-span-2">Ruangan</div>
+              <div class="text-center">08:00</div>
+              <div class="text-center">09:00</div>
+              <div class="text-center">10:00</div>
+              <div class="text-center">11:00</div>
+              <div class="text-center">12:00</div>
+              <div class="text-center">13:00</div>
+              <div class="text-center">14:00</div>
+              <div class="text-center">15:00</div>
+              <div class="text-center">16:00</div>
+            </div>
+            <!-- Timeline rows -->
+            <div id="timelineRowsContainer" class="divide-y divide-slate-100">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected Date Day Details Preview Drawer -->
+      <div id="dayDetailSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="calendar-check" class="w-5 h-5 text-indigo-600"></i>
+              <span>Agenda Pada <span id="selectedDateTitle" class="text-indigo-600 font-bold">Hari Ini</span></span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Daftar reservasi ruangan yang aktif pada tanggal terpilih.</p>
+          </div>
+          <button onclick="openBookingModalForSelectedDate()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition inline-flex items-center space-x-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Booking di Tanggal Ini</span>
+          </button>
+        </div>
+
+        <div id="dayBookingsList" class="space-y-3">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 2: DAFTAR RUANGAN ==================== -->
+    <div id="tabContent-rooms" class="space-y-6 hidden">
+      <!-- Search & Filters -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="relative flex-1 max-w-md">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+          <input type="text" id="roomSearchInput" oninput="filterRoomsList()" placeholder="Cari nama ruangan, kode, atau fasilitas..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="filterRoomType" onchange="filterRoomsList()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
+            <option value="ALL">Semua Tipe Ruang</option>
+            <option value="Boardroom">Boardroom</option>
+            <option value="Meeting Room">Meeting Room</option>
+            <option value="Focus Pod">Focus Pod</option>
+            <option value="Ideation Lab">Ideation Lab</option>
+            <option value="Auditorium">Auditorium</option>
+          </select>
+
+          <select id="filterRoomFloor" onchange="filterRoomsList()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
+            <option value="ALL">Semua Lantai</option>
+            <option value="Lantai 1">Lantai 1</option>
+            <option value="Lantai 2">Lantai 2</option>
+            <option value="Lantai 3">Lantai 3</option>
+            <option value="Lantai 4">Lantai 4</option>
+            <option value="Lantai 5">Lantai 5</option>
+          </select>
+
+          <select id="filterRoomCapacity" onchange="filterRoomsList()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
+            <option value="ALL">Semua Kapasitas</option>
+            <option value="4">&ge; 4 Orang</option>
+            <option value="8">&ge; 8 Orang</option>
+            <option value="15">&ge; 15 Orang</option>
+            <option value="50">&ge; 50 Orang</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Rooms Grid Cards -->
+      <div id="roomsGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: RIWAYAT & DAFTAR PEMINJAMAN ==================== -->
+    <div id="tabContent-bookings" class="space-y-6 hidden">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Agenda & Peminjaman Ruangan</h2>
+          <p class="text-xs text-slate-500">Daftar semua jadwal rapat dan status peminjaman di seluruh lantai.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="bookingFilterDept" onchange="loadBookingsTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
+            <option value="ALL">Semua Departemen</option>
+            <option value="Board of Directors">Board of Directors</option>
+            <option value="IT & Engineering">IT & Engineering</option>
+            <option value="Marketing & Growth">Marketing & Growth</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Product & Design">Product & Design</option>
+            <option value="General Affairs">General Affairs</option>
+          </select>
+
+          <select id="bookingFilterStatus" onchange="loadBookingsTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
+            <option value="CONFIRMED">Status: Terkonfirmasi</option>
+            <option value="CANCELLED">Status: Dibatalkan</option>
+          </select>
+
+          <button onclick="exportBookingsCSV()" class="inline-flex items-center space-x-1.5 px-3 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 hover:bg-slate-50 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bookings Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <tr>
+                <th class="py-3.5 px-4">Agenda / Rapat</th>
+                <th class="py-3.5 px-4">Ruangan</th>
+                <th class="py-3.5 px-4">Tanggal & Jam</th>
+                <th class="py-3.5 px-4">Pemohon</th>
+                <th class="py-3.5 px-4">Departemen</th>
+                <th class="py-3.5 px-4">Status</th>
+                <th class="py-3.5 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="bookingsTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-slate-700">RuangKerja Corporate Hub</span>
+        <span>&bull;</span>
+        <span>Anti-Conflict Smart Scheduling System</span>
+      </div>
+      <div>
+        <span>Terhubung ke SQLite Database &bull; Real-time Conflict Guard</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL: FORM PINJAM RUANGAN ==================== -->
+  <div id="bookingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Close Button -->
+      <button onclick="closeBookingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="mb-5">
+        <div class="inline-flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-semibold mb-2">
+          <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+          <span>Formulir Reservasi</span>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900">Pinjam Ruang Rapat</h3>
+        <p class="text-xs text-slate-500">Sistem otomatis memeriksa ketersediaan slot agar tidak terjadi tabrakan jadwal.</p>
+      </div>
+
+      <!-- Booking Form -->
+      <form id="bookingForm" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+        
+        <!-- Pilihan Ruangan -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Pilih Ruangan <span class="text-rose-500">*</span></label>
+          <select id="modalRoomSelect" required onchange="triggerLiveConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <!-- Populated via JS -->
+          </select>
+          <p id="modalRoomCapacityNotice" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+
+        <!-- Tanggal & Jam -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal <span class="text-rose-500">*</span></label>
+            <input type="date" id="modalDateInput" required onchange="triggerLiveConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jam Mulai <span class="text-rose-500">*</span></label>
+            <input type="time" id="modalStartTime" required value="09:00" step="900" onchange="triggerLiveConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jam Selesai <span class="text-rose-500">*</span></label>
+            <input type="time" id="modalEndTime" required value="10:30" step="900" onchange="triggerLiveConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- LIVE CONFLICT STATUS BANNER -->
+        <div id="liveConflictBanner" class="p-3 rounded-xl border text-xs hidden transition-all">
+          <!-- Dynamic validation feedback -->
+        </div>
+
+        <!-- Judul Agenda / Topik Rapat -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Topik / Agenda Rapat <span class="text-rose-500">*</span></label>
+          <input type="text" id="modalTitle" required placeholder="Contoh: Sprint Review & Q3 OKR Evaluation" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <!-- Nama Pemohon & Email -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Pemohon <span class="text-rose-500">*</span></label>
+            <input type="text" id="modalBookerName" required placeholder="Nama lengkap Anda" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Email Kantor <span class="text-rose-500">*</span></label>
+            <input type="email" id="modalBookerEmail" required placeholder="nama@corporate.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Divisi & Jumlah Peserta -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Divisi / Departemen <span class="text-rose-500">*</span></label>
+            <select id="modalDepartment" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="IT & Engineering">IT & Engineering</option>
+              <option value="Product & Design">Product & Design</option>
+              <option value="Marketing & Growth">Marketing & Growth</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Finance & Accounting">Finance & Accounting</option>
+              <option value="Board of Directors">Board of Directors</option>
+              <option value="General Affairs">General Affairs / Operasional</option>
+              <option value="Sales & Business Dev">Sales & Business Dev</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jumlah Peserta Hadir</label>
+            <input type="number" id="modalParticipants" min="1" max="100" value="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Catatan Tambahan -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Catatan Tambahan / Fasilitas Khusus (Opsional)</label>
+          <textarea id="modalNotes" rows="2" placeholder="Contoh: Butuh HDMI adapter type-C, spidol tambahan, atau setup coffee break" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-3 flex items-center justify-end space-x-3">
+          <button type="button" onclick="closeBookingModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
+            Batal
+          </button>
+          <button type="submit" id="submitBookingBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-100 transition inline-flex items-center space-x-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Konfirmasi Booking</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: DETAIL BOOKING ==================== -->
+  <div id="bookingDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative">
+      <button onclick="closeDetailModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-2 text-xs font-semibold text-indigo-600 mb-2">
+        <i data-lucide="info" class="w-4 h-4"></i>
+        <span>Detail Reservasi</span>
+      </div>
+
+      <h3 id="detailModalTitle" class="text-xl font-bold text-slate-900 mb-4">Agenda Rapat</h3>
+
+      <div class="space-y-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-5">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Ruangan:</span>
+          <span id="detailModalRoom" class="font-bold text-slate-800">Boardroom (Lantai 5)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Tanggal:</span>
+          <span id="detailModalDate" class="font-bold text-slate-800">2026-09-30</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Waktu:</span>
+          <span id="detailModalTime" class="font-bold text-indigo-600">09:00 - 11:30 WIB</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Pemohon:</span>
+          <span id="detailModalBooker" class="font-bold text-slate-800">Budi Santoso</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Departemen:</span>
+          <span id="detailModalDept" class="font-bold text-slate-800">IT & Engineering</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Jumlah Peserta:</span>
+          <span id="detailModalParticipants" class="font-bold text-slate-800">8 Orang</span>
+        </div>
+        <div id="detailModalNotesContainer" class="pt-2 border-t border-slate-200">
+          <span class="text-slate-500 block mb-1">Catatan Tambahan:</span>
+          <p id="detailModalNotes" class="text-slate-700 italic"></p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <button id="detailModalCancelBtn" onclick="cancelBookingFromDetail()" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3.5 py-2 rounded-xl border border-rose-200 transition">
+          Batalkan Reservasi
+        </button>
+        <button onclick="closeDetailModal()" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Frontend Logic -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
