@@ -344,10 +344,11 @@ function handlePinjamButtonClick() {
 
 // ==================== TAB SWITCHING ====================
 function switchTab(tabName) {
-  const tabs = ['calendar', 'rooms', 'bookings'];
+  const tabs = ['calendar', 'rooms', 'bookings', 'analytics'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tabBtn-${t}`);
     const content = document.getElementById(`tabContent-${t}`);
+    if (!btn || !content) return;
     if (t === tabName) {
       btn.className = 'tab-btn active inline-flex items-center py-4 px-1 border-b-2 border-indigo-600 font-semibold text-sm text-indigo-600';
       content.classList.remove('hidden');
@@ -364,6 +365,8 @@ function switchTab(tabName) {
     renderRoomsList(roomsData);
   } else if (tabName === 'bookings') {
     loadBookingsTable();
+  } else if (tabName === 'analytics') {
+    loadAnalyticsData();
   }
 
   if (window.lucide) lucide.createIcons();
@@ -514,10 +517,16 @@ function renderRoomsList(rooms) {
               }
             </div>
 
-            <button onclick="openBookingModalForRoom(${room.id})" class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm">
-              <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-              <span>Booking</span>
-            </button>
+            <div class="flex items-center space-x-1.5">
+              <a href="/kiosk.html?room=${room.code}" target="_blank" class="inline-flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-2 rounded-xl transition" title="Buka Mode Layar Tablet Pintu (Kiosk)">
+                <i data-lucide="tablet" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span class="hidden sm:inline">Layar Pintu</span>
+              </a>
+              <button onclick="openBookingModalForRoom(${room.id})" class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm">
+                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                <span>Booking</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1344,6 +1353,21 @@ function showBookingDetail(bookingId) {
     notesContainer.classList.add('hidden');
   }
 
+  // Check-in status display
+  const checkinStatusEl = document.getElementById('detailModalCheckinStatus');
+  const checkinBtn = document.getElementById('detailModalCheckinBtn');
+  const releaseBtn = document.getElementById('detailModalReleaseBtn');
+
+  if (booking.checked_in_at) {
+    checkinStatusEl.textContent = `✓ Sudah Check-in (${booking.checked_in_at.slice(11, 16)} WIB)`;
+    checkinStatusEl.className = 'font-bold text-[11px] text-emerald-600';
+    if (checkinBtn) checkinBtn.classList.add('hidden');
+  } else {
+    checkinStatusEl.textContent = '⏳ Belum Check-in';
+    checkinStatusEl.className = 'font-bold text-[11px] text-amber-600';
+    if (checkinBtn) checkinBtn.classList.remove('hidden');
+  }
+
   // Manage buttons based on permission
   const isOwner = currentUser && (booking.user_id === currentUser.id || (booking.booker_email && booking.booker_email.toLowerCase() === currentUser.email.toLowerCase()));
   const isAdmin = currentUser && currentUser.role === 'ADMIN';
@@ -1355,12 +1379,16 @@ function showBookingDetail(bookingId) {
   if (canManage && booking.status === 'CONFIRMED') {
     editBtn.classList.remove('hidden');
     cancelBtn.classList.remove('hidden');
+    if (releaseBtn) releaseBtn.classList.remove('hidden');
   } else if (canManage && isAdmin) {
     editBtn.classList.remove('hidden');
     cancelBtn.classList.add('hidden');
+    if (releaseBtn) releaseBtn.classList.add('hidden');
   } else {
     editBtn.classList.add('hidden');
     cancelBtn.classList.add('hidden');
+    if (checkinBtn) checkinBtn.classList.add('hidden');
+    if (releaseBtn) releaseBtn.classList.add('hidden');
   }
 
   document.getElementById('bookingDetailModal').classList.remove('hidden');
@@ -1586,4 +1614,214 @@ function showToast(message, type = 'info') {
     toast.classList.add('opacity-0', 'translate-y-2');
     setTimeout(() => toast.remove(), 300);
   }, 4000);
+}
+
+// ==================== CALENDAR SYNC (GOOGLE CALENDAR & .ICS) ====================
+
+// Add to Google Calendar
+function addCurrentToGoogleCalendar() {
+  if (!selectedBookingDetail) return;
+  const b = selectedBookingDetail;
+
+  // Format: YYYYMMDDTHHmm00Z
+  const cleanDate = b.date.replace(/-/g, '');
+  const cleanStart = b.start_time.replace(/:/g, '') + '00';
+  const cleanEnd = b.end_time.replace(/:/g, '') + '00';
+
+  // WIB is UTC+7
+  const startDt = `${cleanDate}T${cleanStart}`;
+  const endDt = `${cleanDate}T${cleanEnd}`;
+
+  const title = encodeURIComponent(b.title);
+  const details = encodeURIComponent(`Peminjam: ${b.booker_name} (${b.department})\nJumlah Peserta: ${b.participants_count} orang\nCatatan: ${b.notes || '-'}`);
+  const location = encodeURIComponent(`${b.room_name} (${b.room_floor}), RuangKerja Corporate Hub`);
+
+  const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDt}/${endDt}&details=${details}&location=${location}&ctz=Asia/Jakarta`;
+  window.open(gcalUrl, '_blank');
+}
+
+// Download .ICS File for Outlook & Apple Calendar
+function downloadCurrentIcsFile() {
+  if (!selectedBookingDetail) return;
+  const b = selectedBookingDetail;
+
+  const cleanDate = b.date.replace(/-/g, '');
+  const cleanStart = b.start_time.replace(/:/g, '') + '00';
+  const cleanEnd = b.end_time.replace(/:/g, '') + '00';
+
+  const uid = `booking-${b.id}-${Date.now()}@ruangkerja.internal`;
+  const nowStr = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//RuangKerja Corporate//Room Booking System//ID',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${nowStr}`,
+    `DTSTART;TZID=Asia/Jakarta:${cleanDate}T${cleanStart}`,
+    `DTEND;TZID=Asia/Jakarta:${cleanDate}T${cleanEnd}`,
+    `SUMMARY:${b.title}`,
+    `DESCRIPTION:Agenda Rapat oleh ${b.booker_name} (${b.department})\\nRuangan: ${b.room_name} (${b.room_floor})\\nCatatan: ${b.notes || '-'}`,
+    `LOCATION:${b.room_name}\\, ${b.room_floor}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.setAttribute('download', `Rapat_${b.date}_${b.room_name.replace(/\s+/g, '_')}.ics`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToast('File kalender .ICS berhasil diunduh. Klik untuk memasukkan ke Outlook / Apple Calendar.', 'success');
+}
+
+// Check-in Action
+async function checkinCurrentBooking() {
+  if (!selectedBookingDetail) return;
+  const b = selectedBookingDetail;
+
+  try {
+    const res = await fetch(`/api/bookings/${b.id}/checkin`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const json = await res.json();
+    if (json.success) {
+      showToast(json.message, 'success');
+      b.checked_in_at = json.checked_in_at;
+      showBookingDetail(b.id);
+      await refreshAll();
+    } else {
+      showToast(json.message || 'Gagal check-in.', 'error');
+    }
+  } catch (err) {
+    showToast('Kesalahan jaringan saat check-in.', 'error');
+  }
+}
+
+// Release Room Early Action
+async function releaseCurrentBookingEarly() {
+  if (!selectedBookingDetail) return;
+  const b = selectedBookingDetail;
+
+  if (!confirm(`Selesaikan agenda "${b.title}" lebih awal dan bebaskan ruangan sekarang?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/bookings/${b.id}/release`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const json = await res.json();
+    if (json.success) {
+      showToast(json.message, 'success');
+      closeDetailModal();
+      await refreshAll();
+    } else {
+      showToast(json.message || 'Gagal melepaskan ruangan.', 'error');
+    }
+  } catch (err) {
+    showToast('Kesalahan jaringan.', 'error');
+  }
+}
+
+// ==================== ANALYTICS DASHBOARD LOGIC ====================
+async function loadAnalyticsData() {
+  try {
+    const res = await fetch('/api/analytics');
+    const json = await res.json();
+    if (!json.success) return;
+
+    const { totalConfirmed, totalCancelled, checkInRate, roomStats, deptStats, peakHours } = json.data;
+
+    // Set KPI cards
+    document.getElementById('statKpiConfirmed').textContent = totalConfirmed;
+    document.getElementById('statKpiCancelled').textContent = totalCancelled;
+    document.getElementById('statKpiCheckinRate').textContent = `${checkInRate}%`;
+    document.getElementById('statKpiRooms').textContent = roomsData.length;
+
+    renderPeakHoursChart(peakHours);
+    renderRoomUtilization(roomStats);
+    renderDeptDistribution(deptStats);
+  } catch (err) {
+    console.error('Failed to load analytics:', err);
+  }
+}
+
+function renderPeakHoursChart(peakHours) {
+  const container = document.getElementById('peakHoursBarContainer');
+  if (!container) return;
+
+  const maxVal = Math.max(...peakHours.map(p => p.count), 1);
+
+  container.innerHTML = peakHours.map(item => {
+    const heightPct = Math.max(12, Math.round((item.count / maxVal) * 100));
+    const isPeak = item.count === maxVal && item.count > 0;
+
+    return `
+      <div class="flex-1 flex flex-col items-center h-full justify-end group relative">
+        <!-- Tooltip -->
+        <div class="opacity-0 group-hover:opacity-100 transition absolute -top-8 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap z-20">
+          ${item.hour}: ${item.count} Rapat
+        </div>
+        <!-- Bar -->
+        <div class="w-full max-w-[28px] rounded-t-xl transition-all duration-300 ${isPeak ? 'bg-indigo-600 shadow-md shadow-indigo-200' : (item.count > 0 ? 'bg-indigo-400 hover:bg-indigo-500' : 'bg-slate-100')}" style="height: ${heightPct}%;"></div>
+        <!-- Label -->
+        <span class="text-[10px] font-semibold text-slate-500 mt-2">${item.hour.slice(0, 2)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRoomUtilization(roomStats) {
+  const container = document.getElementById('roomUtilizationList');
+  if (!container) return;
+
+  const maxVal = Math.max(...roomStats.map(r => r.booking_count), 1);
+
+  container.innerHTML = roomStats.map(r => {
+    const pct = Math.max(8, Math.round((r.booking_count / maxVal) * 100));
+    return `
+      <div>
+        <div class="flex items-center justify-between text-xs mb-1">
+          <span class="font-bold text-slate-800 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full" style="background-color: ${r.color}"></span>
+            <span>${r.name} (${r.code})</span>
+          </span>
+          <span class="font-semibold text-slate-500">${r.booking_count} reservasi</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+          <div class="h-2.5 rounded-full transition-all duration-500" style="width: ${pct}%; background-color: ${r.color || '#4f46e5'}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDeptDistribution(deptStats) {
+  const container = document.getElementById('deptDistributionGrid');
+  if (!container) return;
+
+  if (deptStats.length === 0) {
+    container.innerHTML = '<div class="col-span-full text-center text-slate-400 text-xs py-4">Belum ada data peminjaman antar divisi.</div>';
+    return;
+  }
+
+  container.innerHTML = deptStats.map(d => `
+    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+      <div>
+        <div class="font-bold text-xs text-slate-800">${d.department}</div>
+        <div class="text-[10px] text-slate-400">Departemen Aktif</div>
+      </div>
+      <span class="text-sm font-extrabold text-indigo-600 bg-white border border-slate-200 px-2 py-0.5 rounded-lg shadow-2xs">${d.count}x</span>
+    </div>
+  `).join('');
 }

@@ -55,12 +55,16 @@ db.exec(`
   );
 `);
 
-// Migration check: ensure user_id column exists in bookings
+// Migration check: ensure user_id and checked_in_at columns exist in bookings
 try {
   const bookingColumns = db.prepare("PRAGMA table_info(bookings)").all();
   const hasUserId = bookingColumns.some(col => col.name === 'user_id');
   if (!hasUserId) {
     db.exec("ALTER TABLE bookings ADD COLUMN user_id INTEGER;");
+  }
+  const hasCheckedInCol = bookingColumns.some(col => col.name === 'checked_in_at');
+  if (!hasCheckedInCol) {
+    db.exec("ALTER TABLE bookings ADD COLUMN checked_in_at DATETIME;");
   }
 } catch (e) {
   // Ignore migration error if already present

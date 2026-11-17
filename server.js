@@ -893,6 +893,165 @@ app.delete('/api/bookings/:id', authenticate, (req, res) => {
   }
 });
 
+// 7. POST /api/bookings/:id/checkin - Check-in ke ruangan saat rapat mulai (Anti-Ghost Meeting)
+app.post('/api/bookings/:id/checkin', authenticate, (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Peminjaman tidak ditemukan.' });
+    }
+
+    if (booking.status !== 'CONFIRMED') {
+      return res.status(400).json({ success: false, message: 'Peminjaman ini sudah dibatalkan.' });
+    }
+
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    db.prepare('UPDATE bookings SET checked_in_at = ? WHERE id = ?').run(now, bookingId);
+
+    res.json({
+      success: true,
+      message: `Check-in berhasil untuk agenda "${booking.title}". Selamat berdiskusi!`,
+      checked_in_at: now
+    });
+  } catch (err) {
+    console.error('Error checkin booking:', err);
+    res.status(500).json({ success: false, message: 'Gagal melakukan check-in ruangan.' });
+  }
+});
+
+// 8. POST /api/bookings/:id/release - Selesai lebih awal & bebaskan ruangan (Early Release)
+app.post('/api/bookings/:id/release', authenticate, (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Peminjaman tidak ditemukan.' });
+    }
+
+    const isOwner = (booking.user_id && booking.user_id === req.user.id) || (booking.booker_email.toLowerCase() === req.user.email.toLowerCase());
+    const isAdmin = req.user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+    }
+
+    const nowTime = new Date().toTimeString().slice(0, 5); // HH:MM
+    // Set end_time to nowTime if nowTime is between start_time and end_time
+    if (nowTime > booking.start_time && nowTime < booking.end_time) {
+      db.prepare('UPDATE bookings SET end_time = ? WHERE id = ?').run(nowTime, bookingId);
+    }
+
+    res.json({
+      success: true,
+      message: `Ruangan telah berhasil dilepas lebih awal! Slot jam sekarang terbuka kembali untuk rekan kerja lainnya.`
+    });
+  } catch (err) {
+    console.error('Error early releasing booking:', err);
+    res.status(500).json({ success: false, message: 'Gagal melepaskan ruangan lebih awal.' });
+  }
+});
+
+// ==================== ANALYTICS & KIOSK APIS ====================
+
+// GET /api/analytics - Statistik utilisasi ruangan, jam sibuk, dan divisi
+app.get('/api/analytics', (req, res) => {
+  try {
+    const totalConfirmed = db.prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'CONFIRMED'").get().count;
+    const totalCancelled = db.prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'CANCELLED'").get().count;
+    const totalCheckins = db.prepare("SELECT COUNT(*) as count FROM bookings WHERE checked_in_at IS NOT NULL").get().count;
+
+    // Room utilization stats
+    const roomStats = db.prepare(`
+      SELECT r.id, r.name, r.code, r.color, r.capacity, r.type,
+             COUNT(b.id) as booking_count
+      FROM rooms r
+      LEFT JOIN bookings b ON r.id = b.room_id AND b.status = 'CONFIRMED'
+      WHERE r.is_active = 1
+      GROUP BY r.id
+      ORDER BY booking_count DESC
+    `).all();
+
+    // Department breakdown
+    const deptStats = db.prepare(`
+      SELECT department, COUNT(*) as count
+      FROM bookings
+      WHERE status = 'CONFIRMED'
+      GROUP BY department
+      ORDER BY count DESC
+    `).all();
+
+    // Peak hours analysis (from 08:00 to 18:00)
+    const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    const confirmedBookings = db.prepare("SELECT start_time, end_time FROM bookings WHERE status = 'CONFIRMED'").all();
+    
+    const peakHours = hours.map(h => {
+      const count = confirmedBookings.filter(b => b.start_time <= h && b.end_time > h).length;
+      return { hour: h, count };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalConfirmed,
+        totalCancelled,
+        totalCheckins,
+        checkInRate: totalConfirmed > 0 ? Math.round((totalCheckins / totalConfirmed) * 100) : 0,
+        roomStats,
+        deptStats,
+        peakHours
+      }
+    });
+  } catch (err) {
+    console.error('Error generating analytics:', err);
+    res.status(500).json({ success: false, message: 'Gagal memuat analitik.' });
+  }
+});
+
+// GET /api/kiosk/:code - Live room signage data for tablets/kiosk
+app.get('/api/kiosk/:code', (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase();
+    const room = db.prepare('SELECT * FROM rooms WHERE code = ? AND is_active = 1').get(code);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Ruangan tidak ditemukan.' });
+    }
+
+    try {
+      room.facilities = JSON.parse(room.facilities);
+    } catch (e) {
+      room.facilities = [];
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().slice(0, 5);
+
+    const todayBookings = db.prepare(`
+      SELECT * FROM bookings
+      WHERE room_id = ? AND date = ? AND status = 'CONFIRMED'
+      ORDER BY start_time ASC
+    `).all(room.id, today);
+
+    const currentBooking = todayBookings.find(b => b.start_time <= nowTime && b.end_time > nowTime) || null;
+    const upcomingBookings = todayBookings.filter(b => b.start_time > nowTime);
+
+    res.json({
+      success: true,
+      data: {
+        room,
+        isOccupied: Boolean(currentBooking),
+        currentBooking,
+        upcomingBookings,
+        serverTime: nowTime,
+        serverDate: today
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching kiosk data:', err);
+    res.status(500).json({ success: false, message: 'Gagal memuat data layar ruangan.' });
+  }
+});
+
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
   console.log(`====================================================`);

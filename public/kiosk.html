@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RuangKerja - Room Signage Display (Kiosk Mode)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/css/custom.css">
+  <style>
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .status-pulse-green { animation: pulse-green 2.5s infinite; }
+    .status-pulse-red { animation: pulse-red 2s infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden font-sans">
+
+  <!-- TOP BAR: ROOM SELECTOR & DIGITAL CLOCK -->
+  <header class="flex items-center justify-between pb-6 border-b border-slate-800">
+    <div class="flex items-center space-x-4">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+        <i data-lucide="building-2" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-3">
+          <select id="kioskRoomSelect" onchange="switchKioskRoom(this.value)" class="bg-slate-900 border border-slate-700 text-white text-lg font-extrabold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+            <!-- Populated via JS -->
+          </select>
+          <span id="kioskRoomFloor" class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full font-bold">Lantai 3</span>
+        </div>
+        <div class="text-xs text-slate-400 mt-1 flex items-center space-x-2">
+          <span>Kapasitas: <strong id="kioskRoomCapacity" class="text-white">10 Pax</strong></span>
+          <span>&bull;</span>
+          <span id="kioskRoomType" class="text-indigo-400 font-semibold">Meeting Room</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Digital Clock -->
+    <div class="text-right">
+      <div id="liveClock" class="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono text-white">00:00:00</div>
+      <div id="liveDate" class="text-xs text-slate-400 font-medium mt-0.5">Senin, 17 November 2026</div>
+    </div>
+  </header>
+
+  <!-- CENTER MAIN DISPLAY: STATUS CARD -->
+  <main class="my-auto py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      
+      <!-- Big Status Banner -->
+      <div class="lg:col-span-7">
+        <div id="statusCard" class="p-8 sm:p-10 rounded-3xl border transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800">
+          
+          <div class="flex items-center space-x-3 mb-4">
+            <span id="statusIndicatorDot" class="w-4 h-4 rounded-full bg-emerald-500 status-pulse-green"></span>
+            <span id="statusBadgeText" class="text-sm font-extrabold uppercase tracking-wider text-emerald-400">RUANGAN TERSEDIA (VACANT)</span>
+          </div>
+
+          <h1 id="statusMainTitle" class="text-3xl sm:text-5xl font-black tracking-tight mb-3 text-white leading-tight">
+            Ruangan Siap Digunakan
+          </h1>
+
+          <p id="statusSubText" class="text-slate-400 text-sm sm:text-base mb-8 max-w-lg">
+            Tidak ada agenda rapat yang sedang berlangsung saat ini. Anda dapat menggunakannya atau membuat rapat kilat.
+          </p>
+
+          <!-- Interactive Actions for Walk-ins -->
+          <div class="flex flex-wrap items-center gap-3">
+            <button id="instantBookBtn" onclick="openInstantBookModal()" class="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-600/30 transition inline-flex items-center space-x-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-300"></i>
+              <span>Pakai Cepat (30 Menit)</span>
+            </button>
+            <button id="checkinKioskBtn" onclick="handleKioskCheckin()" class="hidden px-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition items-center space-x-2">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              <span>Konfirmasi Hadir (Check-in)</span>
+            </button>
+            <button id="releaseEarlyBtn" onclick="handleKioskReleaseEarly()" class="hidden px-5 py-3.5 bg-slate-800 hover:bg-rose-900/60 border border-slate-700 hover:border-rose-500 text-slate-300 hover:text-white font-bold text-sm rounded-2xl transition items-center space-x-2">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              <span>Selesai Lebih Cepat</span>
+            </button>
+            <a href="/" class="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-2xl border border-slate-800 transition inline-flex items-center space-x-1.5">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <span>Buka Portal Utama</span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Today's Agenda on this Room -->
+      <div class="lg:col-span-5 bg-slate-900/60 p-6 sm:p-7 rounded-3xl border border-slate-800/80">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          <h3 class="font-extrabold text-sm text-slate-200 flex items-center space-x-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+            <span>Agenda Hari Ini</span>
+          </h3>
+          <span id="agendaCountBadge" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-bold">0 Rapat</span>
+        </div>
+
+        <div id="kioskUpcomingList" class="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM BAR: ROOM AMENITIES & CORPORATE FOOTER -->
+  <footer class="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+    <div class="flex items-center space-x-2">
+      <span class="text-slate-400 font-bold">Fasilitas Ruang:</span>
+      <div id="kioskFacilitiesContainer" class="flex flex-wrap gap-1.5">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span class="text-slate-400">RuangKerja Signage Active &bull; Auto-sync 15s</span>
+    </div>
+  </footer>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- SCRIPT LOGIC FOR KIOSK -->
+  <script>
+    let currentRoomCode = 'RM-301';
+    let currentRoomData = null;
+    let currentActiveBooking = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check query params for room code e.g. ?room=RM-501
+      const params = new URLSearchParams(window.location.search);
+      const urlCode = params.get('room');
+      if (urlCode) {
+        currentRoomCode = urlCode.toUpperCase();
+      }
+
+      startClock();
+      await loadAllRoomsList();
+      await fetchKioskData();
+
+      // Poll every 15 seconds
+      setInterval(fetchKioskData, 15000);
+    });
+
+    function startClock() {
+      const update = () => {
+        const now = new Date();
+        document.getElementById('liveClock').textContent = now.toTimeString().slice(0, 8);
+        document.getElementById('liveDate').textContent = now.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    async function loadAllRoomsList() {
+      try {
+        const res = await fetch('/api/rooms');
+        const json = await res.json();
+        if (json.success) {
+          const select = document.getElementById('kioskRoomSelect');
+          select.innerHTML = json.data.map(r => `
+            <option value="${r.code}" ${r.code === currentRoomCode ? 'selected' : ''}>${r.name} (${r.code})</option>
+          `).join('');
+        }
+      } catch (err) {
+        console.error('Error loading rooms:', err);
+      }
+    }
+
+    function switchKioskRoom(code) {
+      currentRoomCode = code;
+      const url = new URL(window.location);
+      url.searchParams.set('room', code);
+      window.history.pushState({}, '', url);
+      fetchKioskData();
+    }
+
+    async function fetchKioskData() {
+      try {
+        const res = await fetch(`/api/kiosk/${currentRoomCode}`);
+        const json = await res.json();
+        if (!json.success) return;
+
+        const { room, isOccupied, currentBooking, upcomingBookings } = json.data;
+        currentRoomData = room;
+        currentActiveBooking = currentBooking;
+
+        // Header info
+        document.getElementById('kioskRoomFloor').textContent = room.floor;
+        document.getElementById('kioskRoomCapacity').textContent = `${room.capacity} Pax`;
+        document.getElementById('kioskRoomType').textContent = room.type;
+
+        // Facilities
+        const facContainer = document.getElementById('kioskFacilitiesContainer');
+        facContainer.innerHTML = (room.facilities || []).map(f => `
+          <span class="bg-slate-900 border border-slate-800 text-slate-300 text-[11px] px-2 py-0.5 rounded-md font-medium">${f}</span>
+        `).join('');
+
+        // Status Card Styling
+        const statusCard = document.getElementById('statusCard');
+        const dot = document.getElementById('statusIndicatorDot');
+        const badge = document.getElementById('statusBadgeText');
+        const mainTitle = document.getElementById('statusMainTitle');
+        const subText = document.getElementById('statusSubText');
+        const instantBtn = document.getElementById('instantBookBtn');
+        const checkinBtn = document.getElementById('checkinKioskBtn');
+        const releaseBtn = document.getElementById('releaseEarlyBtn');
+
+        if (isOccupied && currentBooking) {
+          // RED / OCCUPIED STATE
+          statusCard.className = 'p-8 sm:p-10 rounded-3xl border transition-all duration-300 relative overflow-hidden bg-rose-950/30 border-rose-900/60 shadow-2xl shadow-rose-900/20';
+          dot.className = 'w-4 h-4 rounded-full bg-rose-500 status-pulse-red';
+          badge.className = 'text-sm font-extrabold uppercase tracking-wider text-rose-400';
+          badge.textContent = 'SEDANG BERLANGSUNG (IN MEETING)';
+
+          mainTitle.textContent = currentBooking.title;
+          subText.innerHTML = `
+            Dipakai oleh <strong>${currentBooking.booker_name}</strong> (${currentBooking.department})<br>
+            Waktu: <strong class="text-rose-300 font-mono text-base">${currentBooking.start_time} - ${currentBooking.end_time} WIB</strong>
+            ${currentBooking.checked_in_at ? '<span class="ml-2 text-xs text-emerald-400 font-bold">✓ Sudah Check-in</span>' : '<span class="ml-2 text-xs text-amber-400 font-bold">⏳ Menunggu Check-in</span>'}
+          `;
+
+          instantBtn.classList.add('hidden');
+          releaseBtn.classList.remove('hidden');
+          releaseBtn.classList.add('inline-flex');
+
+          if (!currentBooking.checked_in_at) {
+            checkinBtn.classList.remove('hidden');
+            checkinBtn.classList.add('inline-flex');
+          } else {
+            checkinBtn.classList.add('hidden');
+          }
+        } else {
+          // GREEN / VACANT STATE
+          statusCard.className = 'p-8 sm:p-10 rounded-3xl border transition-all duration-300 relative overflow-hidden bg-emerald-950/20 border-emerald-900/50 shadow-2xl shadow-emerald-900/20';
+          dot.className = 'w-4 h-4 rounded-full bg-emerald-500 status-pulse-green';
+          badge.className = 'text-sm font-extrabold uppercase tracking-wider text-emerald-400';
+          badge.textContent = 'RUANGAN TERSEDIA (VACANT)';
+
+          mainTitle.textContent = 'Ruangan Siap Digunakan';
+          const next = upcomingBookings[0];
+          if (next) {
+            subText.textContent = `Tersedia saat ini. Rapat berikutnya: "${next.title}" pada jam ${next.start_time} WIB.`;
+          } else {
+            subText.textContent = 'Bebas digunakan sepanjang sisa hari ini tanpa ada agenda rapat berikutnya.';
+          }
+
+          instantBtn.classList.remove('hidden');
+          checkinBtn.classList.add('hidden');
+          releaseBtn.classList.add('hidden');
+        }
+
+        // Agenda list
+        document.getElementById('agendaCountBadge').textContent = `${upcomingBookings.length} Rapat`;
+        const agendaContainer = document.getElementById('kioskUpcomingList');
+
+        if (upcomingBookings.length === 0) {
+          agendaContainer.innerHTML = `
+            <div class="py-10 text-center text-slate-500 text-xs">
+              <i data-lucide="check-circle" class="w-6 h-6 mx-auto mb-2 text-slate-600"></i>
+              Tidak ada agenda berikutnya pada hari ini.
+            </div>
+          `;
+        } else {
+          agendaContainer.innerHTML = upcomingBookings.map(b => `
+            <div class="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-xs text-white">${b.title}</div>
+                <div class="text-[11px] text-slate-400">${b.booker_name} &bull; ${b.department}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs font-mono font-bold text-indigo-400">${b.start_time} - ${b.end_time}</div>
+                <div class="text-[10px] text-slate-500">${b.participants_count} Pax</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        if (window.lucide) lucide.createIcons();
+      } catch (err) {
+        console.error('Kiosk fetch error:', err);
+      }
+    }
+
+    // Instant 30-min Booking from Kiosk
+    async function openInstantBookModal() {
+      if (!currentRoomData) return;
+      const title = prompt(`Buat Rapat Kilat (30 Menit) di ${currentRoomData.name}:\nMasukkan Nama Anda / Topik Singkat:`, 'Quick Discussion');
+      if (!title || !title.trim()) return;
+
+      const now = new Date();
+      const sH = String(now.getHours()).padStart(2, '0');
+      const sM = String(now.getMinutes()).padStart(2, '0');
+      const start_time = `${sH}:${sM}`;
+
+      // End time + 30 mins
+      const endD = new Date(now.getTime() + 30 * 60000);
+      const eH = String(endD.getHours()).padStart(2, '0');
+      const eM = String(endD.getMinutes()).padStart(2, '0');
+      const end_time = `${eH}:${eM}`;
+
+      const date = now.toISOString().split('T')[0];
+
+      // Get token from localStorage if user is logged in on this browser
+      const token = localStorage.getItem('rk_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            room_id: currentRoomData.id,
+            title: `[Quick Walk-in] ${title.trim()}`,
+            booker_name: 'Walk-in Guest',
+            booker_email: 'walkin@corporate.com',
+            department: 'General Affairs',
+            date,
+            start_time,
+            end_time,
+            participants_count: 2
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showKioskToast('Ruangan berhasil dibooking kilat 30 menit!', 'success');
+          fetchKioskData();
+        } else {
+          showKioskToast(json.message || 'Gagal booking kilat.', 'error');
+        }
+      } catch (err) {
+        showKioskToast('Kesalahan jaringan.', 'error');
+      }
+    }
+
+    async function handleKioskCheckin() {
+      if (!currentActiveBooking) return;
+      const token = localStorage.getItem('rk_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const res = await fetch(`/api/bookings/${currentActiveBooking.id}/checkin`, {
+          method: 'POST',
+          headers
+        });
+        const json = await res.json();
+        if (json.success) {
+          showKioskToast(json.message, 'success');
+          fetchKioskData();
+        } else {
+          showKioskToast(json.message || 'Gagal check-in.', 'error');
+        }
+      } catch (err) {
+        showKioskToast('Gagal memproses check-in.', 'error');
+      }
+    }
+
+    async function handleKioskReleaseEarly() {
+      if (!currentActiveBooking) return;
+      if (!confirm(`Selesaikan rapat lebih cepat dan bebaskan ruangan ${currentRoomData.name} sekarang?`)) return;
+
+      const token = localStorage.getItem('rk_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const res = await fetch(`/api/bookings/${currentActiveBooking.id}/release`, {
+          method: 'POST',
+          headers
+        });
+        const json = await res.json();
+        if (json.success) {
+          showKioskToast(json.message, 'success');
+          fetchKioskData();
+        } else {
+          showKioskToast(json.message || 'Gagal melepaskan ruangan.', 'error');
+        }
+      } catch (err) {
+        showKioskToast('Kesalahan koneksi.', 'error');
+      }
+    }
+
+    function showKioskToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-900 border-emerald-500' : 'bg-rose-900 border-rose-500';
+      toast.className = `${bg} border-l-4 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl transition transform duration-200`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+  </script>
+</body>
+</html>
