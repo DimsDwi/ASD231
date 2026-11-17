@@ -36,6 +36,7 @@
   <header class="sticky top-0 z-40 glass-header border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
+        
         <!-- Logo & Brand -->
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
@@ -51,11 +52,11 @@
         </div>
 
         <!-- Quick Stats summary in Header -->
-        <div class="hidden md:flex items-center space-x-6 text-sm">
+        <div class="hidden lg:flex items-center space-x-6 text-sm">
           <div class="flex items-center space-x-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
             <span class="text-slate-500">Ruangan:</span>
-            <span id="statTotalRooms" class="font-bold text-slate-800">7</span>
+            <span id="statTotalRooms" class="font-bold text-slate-800">0</span>
           </div>
           <div class="flex items-center space-x-2">
             <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
@@ -69,13 +70,83 @@
           </div>
         </div>
 
-        <!-- Action Button -->
+        <!-- AUTH BAR & ACTIONS -->
         <div class="flex items-center space-x-3">
-          <button onclick="openBookingModal()" class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-150 active:scale-95">
+          
+          <!-- State 1: When Logged In -->
+          <div id="userProfileBar" class="hidden items-center space-x-3">
+            <div class="flex items-center space-x-2.5 bg-slate-100/80 px-3 py-1.5 rounded-2xl border border-slate-200">
+              <div id="userAvatar" class="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                U
+              </div>
+              <div class="text-left text-xs">
+                <div class="flex items-center space-x-1.5">
+                  <span id="userNameDisplay" class="font-bold text-slate-900">User</span>
+                  <span id="userRoleBadge" class="text-[10px] font-bold px-1.5 py-0.2 rounded-md badge-role-employee">KARYAWAN</span>
+                </div>
+                <div id="userDeptDisplay" class="text-[11px] text-slate-500 truncate max-w-[120px]">IT & Engineering</div>
+              </div>
+            </div>
+            
+            <button onclick="handleLogout()" class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition inline-flex items-center space-x-1" title="Keluar Akun">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
+
+          <!-- State 2: When Guest / Not Logged In -->
+          <div id="guestAuthBar" class="flex items-center space-x-2">
+            
+            <!-- Quick Demo Login Dropdown -->
+            <div class="relative">
+              <button onclick="toggleDemoDropdown()" class="text-xs font-semibold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition inline-flex items-center space-x-1">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span class="hidden sm:inline">Demo Akun</span>
+                <i data-lucide="chevron-down" class="w-3 h-3"></i>
+              </button>
+
+              <div id="demoDropdownMenu" class="dropdown-menu absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 hidden z-50">
+                <div class="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Pilih Akun Demo</div>
+                <button onclick="quickLoginDemo('admin@corporate.com', 'admin123')" class="w-full text-left px-2.5 py-2 rounded-xl hover:bg-indigo-50 transition flex items-center space-x-2.5 text-xs text-slate-800">
+                  <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[11px] font-bold">A</span>
+                  <div>
+                    <div class="font-bold flex items-center space-x-1">
+                      <span>Administrator</span>
+                      <span class="text-[9px] bg-indigo-100 text-indigo-700 px-1 rounded">ADMIN</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400">admin@corporate.com</div>
+                  </div>
+                </button>
+                <button onclick="quickLoginDemo('budi.santoso@corporate.com', 'user123')" class="w-full text-left px-2.5 py-2 rounded-xl hover:bg-slate-50 transition flex items-center space-x-2.5 text-xs text-slate-800">
+                  <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[11px] font-bold">B</span>
+                  <div>
+                    <div class="font-bold flex items-center space-x-1">
+                      <span>Budi Santoso</span>
+                      <span class="text-[9px] bg-emerald-100 text-emerald-700 px-1 rounded">USER</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400">budi.santoso@corporate.com</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <button onclick="openAuthModal('login')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 rounded-xl transition inline-flex items-center space-x-1">
+              <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+              <span>Masuk</span>
+            </button>
+            <button onclick="openAuthModal('register')" class="text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl transition hidden sm:inline-block">
+              Daftar
+            </button>
+          </div>
+
+          <!-- Main Pinjam Ruangan Button -->
+          <button onclick="handlePinjamButtonClick()" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-150 active:scale-95">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            <span>Pinjam Ruangan</span>
+            <span class="hidden sm:inline">Pinjam Ruangan</span>
+            <span class="sm:hidden">Booking</span>
           </button>
         </div>
+
       </div>
     </div>
   </header>
@@ -113,7 +184,7 @@
             <i data-lucide="chevron-left" class="w-5 h-5"></i>
           </button>
           <h2 id="calendarMonthYear" class="text-xl font-bold text-slate-800 min-w-[200px] text-center">
-            September 2026
+            Bulan Tahun
           </h2>
           <button onclick="changeMonth(1)" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition">
             <i data-lucide="chevron-right" class="w-5 h-5"></i>
@@ -217,9 +288,9 @@
 
     </div>
 
-    <!-- ==================== TAB 2: DAFTAR RUANGAN ==================== -->
+    <!-- ==================== TAB 2: DAFTAR RUANGAN (CRUD RUANGAN) ==================== -->
     <div id="tabContent-rooms" class="space-y-6 hidden">
-      <!-- Search & Filters -->
+      <!-- Search & Filters Bar -->
       <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="relative flex-1 max-w-md">
           <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
@@ -252,6 +323,12 @@
             <option value="15">&ge; 15 Orang</option>
             <option value="50">&ge; 50 Orang</option>
           </select>
+
+          <!-- Admin Only Action: Tambah Ruangan Baru -->
+          <button id="adminAddRoomBtn" onclick="openCreateRoomModal()" class="hidden items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition shadow-sm">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Ruangan</span>
+          </button>
         </div>
       </div>
 
@@ -270,6 +347,12 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
+          <!-- Toggle Only My Bookings -->
+          <div id="myBookingsFilterWrapper" class="hidden items-center space-x-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <input type="checkbox" id="myBookingsOnlyCheck" onchange="loadBookingsTable()" class="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
+            <label for="myBookingsOnlyCheck" class="text-xs font-semibold text-slate-700 cursor-pointer select-none">Hanya Booking Saya</label>
+          </div>
+
           <select id="bookingFilterDept" onchange="loadBookingsTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
             <option value="ALL">Semua Departemen</option>
             <option value="Board of Directors">Board of Directors</option>
@@ -283,6 +366,7 @@
           <select id="bookingFilterStatus" onchange="loadBookingsTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 text-slate-700 font-medium">
             <option value="CONFIRMED">Status: Terkonfirmasi</option>
             <option value="CANCELLED">Status: Dibatalkan</option>
+            <option value="ALL">Semua Status</option>
           </select>
 
           <button onclick="exportBookingsCSV()" class="inline-flex items-center space-x-1.5 px-3 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 hover:bg-slate-50 transition">
@@ -323,15 +407,194 @@
       <div class="flex items-center space-x-2">
         <span class="font-bold text-slate-700">RuangKerja Corporate Hub</span>
         <span>&bull;</span>
-        <span>Anti-Conflict Smart Scheduling System</span>
+        <span>CRUD & RBAC Authentication Active</span>
       </div>
       <div>
-        <span>Terhubung ke SQLite Database &bull; Real-time Conflict Guard</span>
+        <span>SQLite + Express.js API &bull; Anti-Conflict Engine</span>
       </div>
     </div>
   </footer>
 
-  <!-- ==================== MODAL: FORM PINJAM RUANGAN ==================== -->
+  <!-- ==================== MODAL: AUTHENTICATION (LOGIN & REGISTER) ==================== -->
+  <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative">
+      
+      <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Tabs: Masuk / Daftar -->
+      <div class="flex border-b border-slate-200 mb-5">
+        <button onclick="switchAuthTab('login')" id="authTabBtn-login" class="flex-1 pb-3 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition text-center">
+          Masuk (Login)
+        </button>
+        <button onclick="switchAuthTab('register')" id="authTabBtn-register" class="flex-1 pb-3 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent transition text-center">
+          Daftar Akun Baru
+        </button>
+      </div>
+
+      <!-- Quick Demo Login Notice -->
+      <div class="bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100 mb-4 text-xs">
+        <div class="font-bold text-indigo-900 mb-1 flex items-center space-x-1">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span>Akses Cepat (Demo):</span>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="quickLoginDemo('admin@corporate.com', 'admin123')" class="flex-1 py-1.5 px-2 bg-indigo-600 text-white font-bold rounded-lg text-[11px] hover:bg-indigo-700 transition">
+            👑 Demo Admin
+          </button>
+          <button type="button" onclick="quickLoginDemo('budi.santoso@corporate.com', 'user123')" class="flex-1 py-1.5 px-2 bg-white text-slate-700 border border-slate-200 font-bold rounded-lg text-[11px] hover:bg-slate-50 transition">
+            💼 Demo Karyawan
+          </button>
+        </div>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Email Kantor <span class="text-rose-500">*</span></label>
+          <input type="email" id="loginEmail" required placeholder="admin@corporate.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Password <span class="text-rose-500">*</span></label>
+          <input type="password" id="loginPassword" required placeholder="Masukkan password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition shadow-md shadow-indigo-100">
+          Masuk Sekarang
+        </button>
+      </form>
+
+      <!-- FORM REGISTER -->
+      <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-3 hidden">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+          <input type="text" id="regName" required placeholder="Nama lengkap Anda" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Email Kantor <span class="text-rose-500">*</span></label>
+          <input type="email" id="regEmail" required placeholder="nama@corporate.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Password <span class="text-rose-500">*</span></label>
+          <input type="password" id="regPassword" required minlength="6" placeholder="Minimal 6 karakter" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Departemen / Divisi <span class="text-rose-500">*</span></label>
+          <select id="regDept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="IT & Engineering">IT & Engineering</option>
+            <option value="Product & Design">Product & Design</option>
+            <option value="Marketing & Growth">Marketing & Growth</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Finance & Accounting">Finance & Accounting</option>
+            <option value="Board of Directors">Board of Directors</option>
+            <option value="General Affairs">General Affairs / Operasional</option>
+            <option value="Sales & Business Dev">Sales & Business Dev</option>
+          </select>
+        </div>
+        <button type="submit" id="regSubmitBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition shadow-md shadow-indigo-100 mt-2">
+          Buat Akun Karyawan
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ROOM CRUD (CREATE & EDIT RUANGAN) ==================== -->
+  <div id="roomModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto">
+      
+      <button onclick="closeRoomModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="mb-5">
+        <div class="inline-flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-semibold mb-2">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          <span id="roomModalBadge">Manajemen Ruangan</span>
+        </div>
+        <h3 id="roomModalTitle" class="text-xl font-bold text-slate-900">Tambah Ruangan Baru</h3>
+        <p class="text-xs text-slate-500">Kelola master data fasilitas dan spesifikasi ruang rapat kantor.</p>
+      </div>
+
+      <form id="roomForm" onsubmit="handleRoomFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="roomFormId">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nama Ruangan <span class="text-rose-500">*</span></label>
+            <input type="text" id="modalRoomName" required placeholder="Contoh: Meeting Room Gamma" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Kode Ruang <span class="text-rose-500">*</span></label>
+            <input type="text" id="modalRoomCode" required placeholder="Contoh: RM-303" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none uppercase">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tipe Ruangan <span class="text-rose-500">*</span></label>
+            <select id="modalRoomType" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="Meeting Room">Meeting Room</option>
+              <option value="Boardroom">Boardroom</option>
+              <option value="Focus Pod">Focus Pod</option>
+              <option value="Ideation Lab">Ideation Lab</option>
+              <option value="Auditorium">Auditorium</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Lantai Gedung <span class="text-rose-500">*</span></label>
+            <select id="modalRoomFloor" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="Lantai 1">Lantai 1</option>
+              <option value="Lantai 2">Lantai 2</option>
+              <option value="Lantai 3">Lantai 3</option>
+              <option value="Lantai 4">Lantai 4</option>
+              <option value="Lantai 5">Lantai 5</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Kapasitas (Pax) <span class="text-rose-500">*</span></label>
+            <input type="number" id="modalRoomCapacity" required min="1" max="500" value="10" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Warna Badge / Jadwal</label>
+            <div class="flex items-center space-x-2">
+              <input type="color" id="modalRoomColor" value="#4f46e5" class="h-9 w-12 rounded-xl border border-slate-200 p-0.5 cursor-pointer bg-slate-50">
+              <span class="text-xs text-slate-500">Pilih warna penanda di kalender</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">URL Foto Ruangan</label>
+            <input type="url" id="modalRoomImageUrl" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Fasilitas (Pisahkan dengan koma)</label>
+          <input type="text" id="modalRoomFacilities" placeholder="Smart TV 65 inch, Logitech Cam, Whiteboard, High-Speed Wi-Fi" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Deskripsi Ruangan</label>
+          <textarea id="modalRoomDesc" rows="2" placeholder="Deskripsikan fungsi ruangan, suasana, dan peralatan pendukung rapat..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end space-x-3">
+          <button type="button" onclick="closeRoomModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
+            Batal
+          </button>
+          <button type="submit" id="submitRoomBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-100 transition inline-flex items-center space-x-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span id="submitRoomBtnText">Simpan Ruangan</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CREATE BOOKING (PINJAM RUANGAN) ==================== -->
   <div id="bookingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto">
       
@@ -418,7 +681,7 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">Jumlah Peserta Hadir</label>
-            <input type="number" id="modalParticipants" min="1" max="100" value="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <input type="number" id="modalParticipants" min="1" max="500" value="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
           </div>
         </div>
 
@@ -439,6 +702,105 @@
           </button>
         </div>
 
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT BOOKING (CRUD PEMINJAMAN) ==================== -->
+  <div id="bookingEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto">
+      
+      <button onclick="closeEditBookingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="mb-5">
+        <div class="inline-flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-semibold mb-2">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+          <span>Ubah Peminjaman</span>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900">Perbarui Jadwal Rapat</h3>
+        <p class="text-xs text-slate-500">Edit jadwal, peserta, atau fasilitas agenda Anda.</p>
+      </div>
+
+      <form id="editBookingForm" onsubmit="handleEditBookingSubmit(event)" class="space-y-4">
+        <input type="hidden" id="editBookingId">
+
+        <!-- Pilihan Ruangan -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Pilih Ruangan <span class="text-rose-500">*</span></label>
+          <select id="editModalRoomSelect" required onchange="triggerEditConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <!-- Tanggal & Jam -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal <span class="text-rose-500">*</span></label>
+            <input type="date" id="editModalDateInput" required onchange="triggerEditConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jam Mulai <span class="text-rose-500">*</span></label>
+            <input type="time" id="editModalStartTime" required step="900" onchange="triggerEditConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jam Selesai <span class="text-rose-500">*</span></label>
+            <input type="time" id="editModalEndTime" required step="900" onchange="triggerEditConflictCheck()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Live conflict banner for edit -->
+        <div id="editConflictBanner" class="p-3 rounded-xl border text-xs hidden transition-all"></div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Topik / Agenda Rapat <span class="text-rose-500">*</span></label>
+          <input type="text" id="editModalTitle" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Departemen <span class="text-rose-500">*</span></label>
+            <select id="editModalDept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="IT & Engineering">IT & Engineering</option>
+              <option value="Product & Design">Product & Design</option>
+              <option value="Marketing & Growth">Marketing & Growth</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Finance & Accounting">Finance & Accounting</option>
+              <option value="Board of Directors">Board of Directors</option>
+              <option value="General Affairs">General Affairs / Operasional</option>
+              <option value="Sales & Business Dev">Sales & Business Dev</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Jumlah Peserta</label>
+            <input type="number" id="editModalParticipants" min="1" max="500" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Status (Admin only can change) -->
+        <div id="editStatusGroup" class="hidden">
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Status Peminjaman (Admin Only)</label>
+          <select id="editModalStatus" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="CONFIRMED">CONFIRMED (Terkonfirmasi)</option>
+            <option value="CANCELLED">CANCELLED (Dibatalkan)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Catatan Tambahan</label>
+          <textarea id="editModalNotes" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end space-x-3">
+          <button type="button" onclick="closeEditBookingModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
+            Batal
+          </button>
+          <button type="submit" id="submitEditBookingBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-100 transition inline-flex items-center space-x-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Simpan Perubahan</span>
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -482,16 +844,27 @@
           <span class="text-slate-500">Jumlah Peserta:</span>
           <span id="detailModalParticipants" class="font-bold text-slate-800">8 Orang</span>
         </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Status:</span>
+          <span id="detailModalStatus" class="font-bold px-2 py-0.5 rounded text-[11px] badge-confirmed">Terkonfirmasi</span>
+        </div>
         <div id="detailModalNotesContainer" class="pt-2 border-t border-slate-200">
           <span class="text-slate-500 block mb-1">Catatan Tambahan:</span>
           <p id="detailModalNotes" class="text-slate-700 italic"></p>
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
-        <button id="detailModalCancelBtn" onclick="cancelBookingFromDetail()" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3.5 py-2 rounded-xl border border-rose-200 transition">
-          Batalkan Reservasi
-        </button>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center space-x-2">
+          <!-- Edit button in detail modal -->
+          <button id="detailModalEditBtn" onclick="editBookingFromDetail()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl border border-indigo-200 transition">
+            Ubah
+          </button>
+          <!-- Cancel button in detail modal -->
+          <button id="detailModalCancelBtn" onclick="cancelBookingFromDetail()" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-2 rounded-xl border border-rose-200 transition">
+            Batalkan
+          </button>
+        </div>
         <button onclick="closeDetailModal()" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">
           Tutup
         </button>

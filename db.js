@@ -1,5 +1,6 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const { hashPassword } = require('./auth-utils');
 
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new Database(dbPath);
@@ -9,6 +10,17 @@ db.pragma('journal_mode = WAL');
 
 // Create tables
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'EMPLOYEE', -- 'ADMIN' or 'EMPLOYEE'
+    department TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS rooms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -25,6 +37,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     room_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     booker_name TEXT NOT NULL,
@@ -37,13 +50,74 @@ db.exec(`
     notes TEXT,
     status TEXT DEFAULT 'CONFIRMED',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
   );
 `);
 
+// Migration check: ensure user_id column exists in bookings
+try {
+  const bookingColumns = db.prepare("PRAGMA table_info(bookings)").all();
+  const hasUserId = bookingColumns.some(col => col.name === 'user_id');
+  if (!hasUserId) {
+    db.exec("ALTER TABLE bookings ADD COLUMN user_id INTEGER;");
+  }
+} catch (e) {
+  // Ignore migration error if already present
+}
+
+// Seed Users if empty
+const countUsers = db.prepare('SELECT COUNT(*) as count FROM users').get();
+if (countUsers.count === 0) {
+  const insertUser = db.prepare(`
+    INSERT INTO users (name, email, password_hash, salt, role, department)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const initialUsers = [
+    {
+      name: 'Super Admin',
+      email: 'admin@corporate.com',
+      password: 'admin123',
+      role: 'ADMIN',
+      department: 'General Affairs & IT'
+    },
+    {
+      name: 'Budi Santoso',
+      email: 'budi.santoso@corporate.com',
+      password: 'user123',
+      role: 'EMPLOYEE',
+      department: 'Board of Directors'
+    },
+    {
+      name: 'Dewi Lestari',
+      email: 'dewi.lestari@corporate.com',
+      password: 'user123',
+      role: 'EMPLOYEE',
+      department: 'IT & Engineering'
+    },
+    {
+      name: 'Siti Rahma',
+      email: 'siti.rahma@corporate.com',
+      password: 'user123',
+      role: 'EMPLOYEE',
+      department: 'Human Resources'
+    }
+  ];
+
+  const seedUsersTx = db.transaction((users) => {
+    for (const u of users) {
+      const { hash, salt } = hashPassword(u.password);
+      insertUser.run(u.name, u.email, hash, salt, u.role, u.department);
+    }
+  });
+
+  seedUsersTx(initialUsers);
+  console.log('Seeded 4 initial users (1 Admin, 3 Employees).');
+}
+
 // Seed initial rooms if empty
 const countRooms = db.prepare('SELECT COUNT(*) as count FROM rooms').get();
-
 if (countRooms.count === 0) {
   const insertRoom = db.prepare(`
     INSERT INTO rooms (name, code, type, floor, capacity, facilities, color, image_url, description)
@@ -151,13 +225,14 @@ if (countRooms.count === 0) {
   };
 
   const insertBooking = db.prepare(`
-    INSERT INTO bookings (room_id, title, booker_name, booker_email, department, date, start_time, end_time, participants_count, notes, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED')
+    INSERT INTO bookings (room_id, user_id, title, booker_name, booker_email, department, date, start_time, end_time, participants_count, notes, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED')
   `);
 
   const sampleBookings = [
     {
       room_id: 1, // Boardroom
+      user_id: 2, // Budi Santoso
       title: 'Q3 Executive Strategy & Budget Review',
       booker_name: 'Budi Santoso',
       booker_email: 'budi.santoso@corporate.com',
@@ -170,6 +245,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 2, // Meeting Room Alpha
+      user_id: 3, // Dewi Lestari
       title: 'Sprint Planning & Backlog Refinement',
       booker_name: 'Dewi Lestari',
       booker_email: 'dewi.lestari@corporate.com',
@@ -182,6 +258,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 3, // Meeting Room Beta
+      user_id: null,
       title: 'Weekly Marketing Campaign Sync',
       booker_name: 'Ahmad Fauzi',
       booker_email: 'ahmad.fauzi@corporate.com',
@@ -194,6 +271,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 5, // Focus Pod A
+      user_id: 4, // Siti Rahma
       title: '1-on-1 Performance Check-in',
       booker_name: 'Siti Rahma',
       booker_email: 'siti.rahma@corporate.com',
@@ -206,6 +284,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 1, // Boardroom
+      user_id: null,
       title: 'Investor Pitch & Partnership Discussion',
       booker_name: 'Reza Pratama',
       booker_email: 'reza.p@corporate.com',
@@ -218,6 +297,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 4, // Ideation Lab
+      user_id: null,
       title: 'Design Sprint: New Mobile Experience',
       booker_name: 'Maya Putri',
       booker_email: 'maya.putri@corporate.com',
@@ -230,6 +310,7 @@ if (countRooms.count === 0) {
     },
     {
       room_id: 7, // Auditorium
+      user_id: 1, // Super Admin
       title: 'Monthly Company All-Hands Meeting',
       booker_name: 'Agus Wijaya',
       booker_email: 'agus.wijaya@corporate.com',
@@ -244,12 +325,23 @@ if (countRooms.count === 0) {
 
   const seedBookingsTx = db.transaction((bookings) => {
     for (const b of bookings) {
-      insertBooking.run(b.room_id, b.title, b.booker_name, b.booker_email, b.department, b.date, b.start_time, b.end_time, b.participants_count, b.notes);
+      insertBooking.run(b.room_id, b.user_id, b.title, b.booker_name, b.booker_email, b.department, b.date, b.start_time, b.end_time, b.participants_count, b.notes);
     }
   });
 
   seedBookingsTx(sampleBookings);
   console.log('Seeded sample bookings.');
+}
+
+// Link existing bookings with user_id based on booker_email if null
+try {
+  db.exec(`
+    UPDATE bookings 
+    SET user_id = (SELECT id FROM users WHERE users.email = bookings.booker_email)
+    WHERE user_id IS NULL AND booker_email IN (SELECT email FROM users);
+  `);
+} catch (e) {
+  // Ignore
 }
 
 module.exports = db;

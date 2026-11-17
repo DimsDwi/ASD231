@@ -1,73 +1,93 @@
 # RuangKerja - Corporate Room Booking & Meeting Management System
 
-Sistem web modern untuk manajemen peminjaman ruang rapat, ruang presentasi, dan pod fokus perkantoran dengan deteksi bentrok jadwal otomatis (*Anti-Conflict Realtime Guard*).
+Sistem web modern untuk manajemen peminjaman ruang rapat, ruang presentasi, dan pod fokus perkantoran dengan deteksi bentrok jadwal otomatis (*Anti-Conflict Realtime Guard*), **Autentikasi Pengguna & Role-Based Access Control (RBAC)**, serta **CRUD Lengkap** untuk Ruangan dan Peminjaman.
 
 ---
 
 ## 🚀 Fitur Utama
 
-1. **Jadwal & Kalender Interaktif:**
-   - **Tampilan Kalender Bulanan:** Menampilkan agenda pertemuan tiap tanggal lengkap dengan badge warna per ruangan.
-   - **Timeline Harian (Matrix View):** Menampilkan perbandingan jadwal jam-per-jam (08:00 - 18:00 WIB) antar ruangan secara visual.
-   - **Filter Kalender:** Filter jadwal berdasarkan ruangan tertentu.
+### 1. 🔐 Autentikasi Pengguna & RBAC (Role-Based Access Control)
+- **Registrasi Akun:** Karyawan dapat mendaftar dengan Nama, Email Kantor, Password, dan Departemen.
+- **Login Terenkripsi:** Menggunakan kriptografi hashing `scrypt` dan JSON Web Token (JWT) standar RFC 7519.
+- **Dua Peran (Roles):**
+  - 👑 **ADMIN (Administrator):**
+    - Hak penuh CRUD Ruangan (Tambah ruang, Edit spesifikasi & fasilitas, Hapus/nonaktifkan ruang).
+    - Hak mengedit atau membatalkan seluruh reservasi ruangan dari departemen mana pun.
+    - Mengubah status reservasi secara langsung.
+  - 💼 **EMPLOYEE (Karyawan / User):**
+    - Melakukan peminjaman ruangan dengan form yang otomatis terisi identitasnya.
+    - Mengubah (Update/Edit) jadwal peminjaman miliknya sendiri.
+    - Membatalkan (Cancel) reservasi miliknya sendiri.
+    - Filter tampilan "Hanya Booking Saya".
+- **⚡ 1-Click Demo Login:** Tombol cepat di navigasi untuk langsung masuk sebagai Admin atau Karyawan tanpa perlu mengetik manual.
 
-2. **Daftar & Manajemen Ruangan Perkantoran:**
-   - Katalog foto ruangan modern beresolusi tinggi.
-   - Indikator ketersediaan *real-time* (**Tersedia** vs **Sedang Dipakai** dengan animasi denyut).
-   - Filter cepat berdasarkan:
-     - Tipe Ruangan (Boardroom, Meeting Room, Focus Pod, Ideation Lab, Auditorium).
-     - Lantai gedung (Lantai 1 - Lantai 5).
-     - Kapasitas peserta (>= 4, 8, 15, 50 orang).
-   - Fasilitas lengkap: 4K Smart TV, Logitech Zoom PTZ, Digital Whiteboard, High-Speed WiFi, Soundproof Pod, Coffee Station.
+### 2. 🏢 CRUD Lengkap Data Ruangan (Room Management)
+- **Create:** Admin dapat menambahkan ruangan baru lengkap dengan kode, tipe, lantai gedung, kapasitas, palet warna, foto, fasilitas, dan deskripsi.
+- **Read:** Menampilkan katalog ruangan responsif dengan indikator ketersediaan real-time (*Tersedia* vs *Sedang Dipakai*). Filter instan berdasarkan tipe ruang, lantai, dan kapasitas.
+- **Update:** Admin dapat mengedit ruangan kapan saja.
+- **Delete:** Admin dapat menonaktifkan ruangan dengan aman.
 
-3. **Formulir Peminjaman & Anti-Bentrok Cerdas:**
-   - **Pencegahan Tabrakan Jadwal (Conflict Guard):** Sistem otomatis memeriksa ketersediaan slot jam saat pengguna memilih tanggal & jam. Jika bertabrakan dengan agenda lain, sistem langsung memberi peringatan dan melarang pemesanan ganda.
-   - Validasi kapasitas: Memastikan jumlah peserta tidak melampaui kapasitas maksimum ruangan.
-   - Formulir terstruktur: Nama pemohon, email kantor, departemen, estimasi peserta, dan catatan kebutuhan khusus (kopi, proyektor, kabel HDMI/Type-C).
+### 3. 📅 CRUD Lengkap Peminjaman (Booking Management)
+- **Create:** Reservasi ruangan dengan pencegahan tabrakan jadwal (*Anti-Conflict Engine*).
+- **Read:** Kalender interaktif bulanan, Timeline harian matrix jam 08:00 - 18:00, serta tabel agenda komprehensif.
+- **Update:** Mengubah jam, tanggal, jumlah peserta, atau catatan agenda dengan validasi bentrok jadwal real-time.
+- **Delete / Cancel:** Pembatalan reservasi oleh pemilik atau administrator.
 
-4. **Riwayat & Manajemen Peminjaman:**
-   - Tabel agenda rapat lengkap dengan filter departemen dan status.
-   - Detail reservasi & opsi pembatalan peminjaman (*Cancel Booking*).
-   - **Ekspor CSV:** Unduh laporan rekap jadwal rapat ke format spreadsheet/Excel.
+### 4. 📊 Ekspor & Laporan
+- **Ekspor CSV:** Unduh rekapitulasi data seluruh jadwal rapat ke format spreadsheet / Excel.
 
 ---
 
-## 🛠️ Tech Stack
+## 🔑 Akun Demo Bawaan
+
+| Role | Email | Password | Hak Akses |
+|---|---|---|---|
+| 👑 **Administrator** | `admin@corporate.com` | `admin123` | Akses penuh: Tambah/Edit/Hapus Ruangan, Kelola semua booking |
+| 💼 **Karyawan 1** | `budi.santoso@corporate.com` | `user123` | Buat reservasi, Edit & Batal booking miliknya sendiri |
+| 💼 **Karyawan 2** | `dewi.lestari@corporate.com` | `user123` | Buat reservasi, Edit & Batal booking miliknya sendiri |
+
+---
+
+## 🛠️ Tech Stack & Arsitektur
 
 - **Backend:** Node.js, Express.js, CORS, Morgan logger
-- **Database:** SQLite (menggunakan driver performa tinggi `better-sqlite3` dengan WAL mode)
+- **Security & Auth:** Built-in `crypto` (scrypt password hashing & HMAC-SHA256 JWT tokens)
+- **Database:** SQLite (driver `better-sqlite3` dengan WAL mode & relasi foreign key)
 - **Frontend:** Single Page Application (HTML5, Tailwind CSS via CDN, Lucide Icons, Vanilla JavaScript)
 
 ---
 
+## 📡 Dokumentasi Endpoint API
+
+### Autentikasi
+- `POST /api/auth/register` — Pendaftaran akun karyawan baru
+- `POST /api/auth/login` — Autentikasi dan penerbitan token JWT
+- `GET /api/auth/me` — Info profil pengguna login saat ini (memerlukan Bearer token)
+- `GET /api/users` — Daftar seluruh user terdaftar (Admin only)
+
+### CRUD Ruangan
+- `GET /api/rooms` — Mengambil daftar ruangan aktif beserta status ketersediaan
+- `GET /api/rooms/:id` — Mengambil detail spesifikasi dan agenda ruangan
+- `POST /api/rooms` — Menambah ruangan baru (Admin only)
+- `PUT /api/rooms/:id` — Mengubah data ruangan (Admin only)
+- `DELETE /api/rooms/:id` — Menonaktifkan ruangan (Admin only)
+
+### CRUD Peminjaman
+- `GET /api/bookings` — Mengambil data booking (Filter: date, room, dept, my_bookings)
+- `GET /api/bookings/:id` — Detail booking tunggal
+- `POST /api/check-conflict` — Pengecekan tabrakan slot waktu secara proaktif
+- `POST /api/bookings` — Membuat reservasi ruangan baru
+- `PUT /api/bookings/:id` — Mengubah reservasi yang sudah ada (Owner atau Admin)
+- `DELETE /api/bookings/:id` — Membatalkan reservasi (Owner atau Admin)
+
+---
+
 ## 🏃 Cara Menjalankan
-
-Aplikasi saat ini telah berjalan di latar belakang pada:
-👉 **[http://localhost:3000](http://localhost:3000)**
-
-Jika Anda ingin menjalankan ulang di kemudian hari:
 
 ```bash
 cd room-booking-app
 npm start
 ```
 
-Akses web browser Anda di: `http://localhost:3000`
-
----
-
-## 📋 Struktur Direktori
-
-```text
-room-booking-app/
-├── database.sqlite       # Database SQLite lokal (otomatis dibuat dan diisi data awal)
-├── db.js                 # Skema tabel dan seed data awal ruangan & jadwal
-├── package.json          # Konfigurasi dependensi npm
-├── server.js             # API Express.js (CRUD Peminjaman, Validasi Anti-Bentrok, Ruangan)
-└── public/               # Antarmuka Web
-    ├── css/
-    │   └── custom.css    # Style kustom, animasi pulse, dan grid kalender
-    ├── js/
-    │   └── app.js        # Logika dinamis client-side (Kalender, Timeline, Live Check)
-    └── index.html        # Halaman utama aplikasi
-```
+Buka browser Anda dan akses:
+👉 **`http://localhost:3000`**
